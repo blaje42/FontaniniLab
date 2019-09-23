@@ -1,11 +1,14 @@
 %Code to import, save, calculate, and plot sucrose curves from Davis Rig
-%apparatus
+%apparatus 
+%(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQM_002';
+MouseID = 'TDPQF_002';
+age = '11wk';
+
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
 BATtest = 'Sucrose'; %Name of BAT test (or unique folder identifier for test days)
-OutputFileName = [MouseID '-' BATtest];
+OutputFileName = [MouseID '-' BATtest '-' age];
 
 % Pre-sets for figures
 fontname = 'Arial';
@@ -17,7 +20,7 @@ set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k'
 %  *****************************************************************
 
 %Identify subfolders containing data on test days. 
-d = dir([rootdir sep MouseID]);
+d = dir([rootdir sep MouseID sep age]);
 isub = [d(:).isdir]; % returns logical vector
 nameFolds = {d(isub).name}';
 testFolds = nameFolds(contains(nameFolds, BATtest),1); 
@@ -27,7 +30,8 @@ BATdataALL = cell(1,length(testFolds));
 ILIdataALL = cell(1,length(testFolds));
 for testnum = 1:length(testFolds)
     
-    cd([rootdir sep MouseID sep testFolds{testnum}]);
+    cd([rootdir sep MouseID sep age sep testFolds{testnum}]);
+    
     [BATtable, ILIdata, nTrialTot] = importBATdata([MouseID '_' BATtest num2str(testnum)]);
     if size(ILIdata,1) ~= nTrialTot || size(BATtable,1) ~= nTrialTot %If not importing all trials, exit the loop and display error
         disp('Import error - not all trials imported, FIX before proceeding')
@@ -64,11 +68,10 @@ cd([rootdir sep MouseID]);
 load(OutputFileName)
 nSessions = length(BATdataALL);
 
-%meanLickALL = cell(1,nSessions);
 lickCountALL = [];
-normlickALL = [];
+normLickALL = [];
 figure;
-for testnum = 1:nSessions
+for testnum = 1:nSessions 
     
     %%%%%%% I. Calculate and plot average licks per session %%%%%%%
     nTrials = size(ILIdataALL{testnum},1);
@@ -93,10 +96,9 @@ for testnum = 1:nSessions
        stdevLick(numconc) = std(lickCount(lickCount(:,2) == conc(numconc),1));
     end
     
-
-    lickCountALL = [lickCountALL; lickCount]; % For combined curve
-    normlick = meanLick./meanLick(1);% For combined - normalized curve
-    normlickALL = [normlickALL; normlick];
+    lickCountALL = [lickCountALL; lickCount]; % For combined curve (includes all sessions)
+    normLick = meanLick./meanLick(1);% For combined - normalized curve 
+    normLickALL = [normLickALL; normLick]; % (includes all sessions)
     
     %Plot each session
     subplot(2,nSessions + 1,testnum);
@@ -114,7 +116,6 @@ for testnum = 1:nSessions
     firstLICKcut = firstLICK(1:nTrials);    
     
     lickTime = NaN(nTrials,size(ILIdata,2)+1);
-    %lickTime(:,1) = firstLICKcut; %Include first lick latency (time will be relative to trial start)
     lickTime(:,1) = zeros(nTrials,1); %Time will be relative to first lick
     for n = 1:size(ILIdata,2)     
         lickTime(:,n+1) = ILIdata(:,n) + lickTime(:,n);
@@ -141,7 +142,6 @@ end
 
 %%%%%%% III. Calculate and plot sucrose curves averaged across sessions %%%%%%%
 
-%%% Average curves across sessions (Do I want to normalize and then average for each session?) %%%
 meanLickALL = NaN(1,length(conc));
 stdevLickALL = NaN(1,length(conc));
 concALL = unique(lickCountALL(:,2));
@@ -159,26 +159,95 @@ xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); title('Combined
 
 subplot(2,nSessions + 1, 2*(nSessions + 1));
 
-plot(mean(normlickALL),'-ko','MarkerFaceColor','k')
+plot(mean(normLickALL,1),'-ko','MarkerFaceColor','k')
 box off; axis tight; axis square
 set(gca,'TickDir','out','XTick',[1:length(concALL)],'XTickLabels',num2str(concALL),'XLim',[0.5, length(concALL)+0.5])
 xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks'); title('Combined - normalized')
 
 
-%%% Sigmoid fits??? %%%
+%%%%%%% IV. Save figure and data %%%%%%%
+sgtitle(MouseID,'FontSize',20,'Color','red','Interpreter', 'none') 
+ppsize = [1600 800];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+print([OutputFileName '_SummaryFig'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_SummaryFig']);
 
 
-%%% Save figure and data %%%
-sgtitle(MouseID,'FontSize',20,'Color','red','Interpreter', 'none')   
-set(gcf,'Position',[0 0 1600 800]);
+save(OutputFileName,'meanLickALL','normLickALL','lickTime','concALL','-append'); fprintf('Appending... %s\n', OutputFileName);
 
 %% ****************************************************************
 %  *****              SUCROSE CURVES (POPULATION)             *****
 %  ****************************************************************
 % Calculate and plot average sucrose curve for all animals in cohort
 
-CohortMUT = ['TDPQM_002', 'TDPQM_008'];
+CohortMUT = {'TDPQM_002', 'TDPQM_008'};
 CohortCTRL = [];
-CohortWT = ['TDPQF_001', 'TDPQF_002'];
+CohortWT = {'TDPQF_001', 'TDPQF_002'};
+plotpad = 20;
 
-%%% Normalize water licks to 0 %%%
+figure;
+age = '12wk'
+%%%%%%% I. Plot MUT cohort %%%%%%%
+LickALLMICE = [];
+nMice = length(CohortMUT);
+for mnum = 1:nMice
+    cd([rootdir sep CohortMUT{mnum}]);
+    load([CohortMUT{mnum} '-' BATtest '-' age])
+    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+    LickALLMICE = [LickALLMICE; normlick];    
+end
+meanLickALLMICE = mean(LickALLMICE,1);
+semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
+
+subplot(3,1,1); plot(concALL,meanLickALLMICE,'-ko','MarkerFaceColor','k')
+hold on; errorbar(concALL,meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
+
+box off; axis tight;
+set(gca,'TickDir','out','XTick',[concALL],'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
+title(['MUTANT (N = ' num2str(length(CohortMUT)) ')'])
+
+% % % %%%%%%% II. Plot CTRL cohort %%%%%%%
+% % % 
+% % % for mnum = 1:length(CohortCTRL)
+% % %     cd([rootdir sep CohortCTRL(mnum)]);
+% % %     load(OutputFileName)    
+% % % end
+% % % 
+% % % title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
+
+%%%%%%% III. Plot WT cohort %%%%%%%
+age = '11wk'
+
+LickALLMICE = [];
+nMice = length(CohortWT);
+for mnum = 1:nMice
+    cd([rootdir sep CohortWT{mnum}]);
+    load([CohortWT{mnum} '-' BATtest '-' age])
+    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+    LickALLMICE = [LickALLMICE; normlick];    
+end
+meanLickALLMICE = mean(LickALLMICE,1);
+semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
+
+subplot(3,1,3); plot(concALL, meanLickALLMICE,'-ko','MarkerFaceColor','k')
+hold on; errorbar(concALL, meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
+
+box off; axis tight; 
+set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
+title(['WILDTYPE (N = ' num2str(length(CohortWT)) ')'])
+
+sgtitle([BATtest ' - ' age],'FontSize',20, 'Color', 'red')
+
+ppsize = [800 1000];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+%%% Sigmoid fits??? %%%
