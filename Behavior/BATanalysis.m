@@ -2,7 +2,7 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQF_002';
+MouseID = 'TDPQF_001';
 age = '11wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
@@ -34,30 +34,39 @@ for testnum = 1:length(testFolds)
     
     [BATtable, ILIdata, nTrialTot] = importBATdata([MouseID '_' BATtest num2str(testnum)]);
     if size(ILIdata,1) ~= nTrialTot || size(BATtable,1) ~= nTrialTot %If not importing all trials, exit the loop and display error
-        disp('Import error - not all trials imported, FIX before proceeding')
+        error('Import error - not all trials imported, FIX before proceeding')
         break
     end
-    ILIdata(isnan(ILIdata(:,2)),:) = []; %Remove trials with no data
+    
+    ILIdata(BATtable.LICKS == 0,:) = []; %Remove trials with no data
     ILItable = array2table(ILIdata(:,1),'VariableNames',{'PRESENTATION'});
     latencies = num2cell(ILIdata(:,2:end),2);
+    
+    lasttrial = find(BATtable.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
+    if size(ILItable,1) == lasttrial %Trial may have already been removed if there were no licks
+        ILItable(lasttrial,:) = [];
+    end
+    
     ILItable.Latencies = latencies;
         
     BATdataALL{testnum} = BATtable;
     ILIdataALL{testnum} = ILItable;
     
     
-    save([MouseID '_' testFolds{testnum} '.mat'],'BATtable','ILItable'); %Save extracted data in .mat folder for each test session    
-    fprintf('Saving... %s\n',[MouseID '_' testFolds{testnum}]);
+    save([MouseID '_' testFolds{testnum} '.mat'],'BATtable','ILItable'); fprintf('Saving... %s\n',[MouseID '_' testFolds{testnum}]); 
+    
     
 end
 
 cd([rootdir sep MouseID]);
-save([OutputFileName '.mat'],'BATdataALL','ILIdataALL');
-fprintf('Saving... %s\n', OutputFileName);
+save([OutputFileName '.mat'],'BATdataALL','ILIdataALL'); fprintf('Saving... %s\n', OutputFileName);
 
 disp('*************************************');
 disp(['Imported ' num2str(length(testFolds)) ' test(s) for ' MouseID]);
 disp('*************************************');
+
+
+
 %% ****************************************************************
 %  *****              SUCROSE CURVES (INDIVIDUAL)             *****
 %  ****************************************************************
@@ -67,6 +76,7 @@ disp('*************************************');
 cd([rootdir sep MouseID]);
 load(OutputFileName)
 nSessions = length(BATdataALL);
+plotpad = 20;
 
 lickCountALL = [];
 normLickALL = [];
@@ -78,15 +88,19 @@ for testnum = 1:nSessions
     
     % Extract concentration IDs for each trial
     allconcSTR = BATdataALL{testnum}.CONCENTRATION; %Extract list of concentrations for each trial
-    allconc = cellfun(@(x) sscanf(x,'%f'),allconcSTR); %Convert concentration strings to numbers
-    conc = unique(allconc); %Unique list of concentrations used
+    trialconc = cellfun(@(x) sscanf(x,'%f'),allconcSTR); %Convert concentration strings to numbers
+    conc = unique(trialconc); %Unique list of concentrations used
     
     % Extract lick count for each trial
     lickCount = BATdataALL{testnum}.LICKS;
-    lickCount = [lickCount allconc];  
-    
-    % Remove trials with no licks
-    lickCount(lickCount(:,1) == 0,:) = []; 
+    lickCount = [lickCount trialconc];  
+        
+    % Remove trials with no licks 
+    trialconcCUT = trialconc;
+    trialconcCUT(lickCount(:,1) == 0) = [];
+    lickCount(lickCount(:,1) == 0,:) = [];
+
+    trialconcALL{testnum} = trialconcCUT;
     
     % Calculate average # of licks per concentration
     meanLick = NaN(1,length(conc));
@@ -102,45 +116,22 @@ for testnum = 1:nSessions
     
     %Plot each session
     subplot(2,nSessions + 1,testnum);
-    plot(meanLick,'-ko','MarkerFaceColor','k')
-    hold on; errorbar(meanLick,stdevLick,'LineStyle', 'none'); hold off;
-    box off; axis tight; axis square
-    set(gca,'TickDir','out','XTick',[1:length(conc)],'XTickLabels',num2str(conc),'XLim',[0.5, length(conc)+0.5])
+    plot(conc,meanLick,'-ko','MarkerFaceColor','k')
+    hold on; errorbar(conc,meanLick,stdevLick,'LineStyle', 'none'); hold off;
+    box off; axis tight;
+    set(gca,'TickDir','out','XTick',conc,'XTickLabels',num2str(conc),'XLim',[conc(1)-plotpad, conc(end)+plotpad])
     xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); title(['Session ' num2str(testnum)])
-    
-    %%%%%%% II. Calculate and plot lick rasters %%%%%%%
-    
-    % Convert lick ILI to absolute time relative to trial onset
-    ILIdata = cell2mat(ILIdataALL{testnum}{1:nTrials,'Latencies'});
-    firstLICK = BATdataALL{testnum}.Latency; % Onsets for first lick    
-    firstLICKcut = firstLICK(1:nTrials);    
-    
-    lickTime = NaN(nTrials,size(ILIdata,2)+1);
-    lickTime(:,1) = zeros(nTrials,1); %Time will be relative to first lick
-    for n = 1:size(ILIdata,2)     
-        lickTime(:,n+1) = ILIdata(:,n) + lickTime(:,n);
-    end
-    
-    % Sort lick times based on concentration and trial # (sort function
-    % will put earliest trials of each concentration first)
-    [sortCONC,IDX] = sort(allconc(1:nTrials));
-    sortLickTime = lickTime(IDX,:);
-    
-    % Plot individual lick rasters
-    subplot(2,nSessions + 1,testnum + nSessions + 1); 
-    colors = [0 0 0; 0.6 0.2 0.3; 0.37 0.6 0.2; 0.67 0.36 0.22; 0.46 0.15 0.42; 0.17 0.28 0.44];
-    for t = 1:nTrials
-        hold on;
-        scatter(sortLickTime(t,:),repmat(t,1,size(sortLickTime,2)),10,colors(conc == sortCONC(t),:),'filled')        
-    end
-    set(gca,'TickDir','out','YTick',[(nTrials/length(conc))/2:nTrials/length(conc):100],'YTickLabels',num2str(conc))
-    box off; axis tight
-    xlabel('Time from first lick (ms)'); ylabel('Conc. by Trial # (mM)'); title('Lick Raster')
-      
+          
     
 end
 
-%%%%%%% III. Calculate and plot sucrose curves averaged across sessions %%%%%%%
+
+
+%%%%%%% II. Calculate and plot sucrose curves averaged across sessions %%%%%%%
+if nSessions < 2
+    nCol = 2;
+else nCol = nSessions
+end
 
 meanLickALL = NaN(1,length(conc));
 stdevLickALL = NaN(1,length(conc));
@@ -149,23 +140,23 @@ for numconc = 1:length(concALL)
    meanLickALL(numconc) = mean(lickCountALL(lickCountALL(:,2) == concALL(numconc),1)); 
    stdevLickALL(numconc) = std(lickCountALL(lickCountALL(:,2) == concALL(numconc),1));
 end
-subplot(2,nSessions + 1, nSessions + 1);
+subplot(2,nCol, nCol + 1);
 
-plot(meanLickALL,'-ko','MarkerFaceColor','k')
-hold on; errorbar(meanLickALL,stdevLickALL,'LineStyle', 'none'); hold off;
-box off; axis tight; axis square
-set(gca,'TickDir','out','XTick',[1:length(concALL)],'XTickLabels',num2str(concALL),'XLim',[0.5, length(concALL)+0.5])
+plot(concALL,meanLickALL,'-ko','MarkerFaceColor','k')
+hold on; errorbar(concALL,meanLickALL,stdevLickALL,'LineStyle', 'none'); hold off;
+box off; axis tight;
+set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
 xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); title('Combined')
 
-subplot(2,nSessions + 1, 2*(nSessions + 1));
+subplot(2,nCol, nCol + 2);
 
-plot(mean(normLickALL,1),'-ko','MarkerFaceColor','k')
-box off; axis tight; axis square
-set(gca,'TickDir','out','XTick',[1:length(concALL)],'XTickLabels',num2str(concALL),'XLim',[0.5, length(concALL)+0.5])
+plot(concALL, mean(normLickALL,1),'-ko','MarkerFaceColor','k')
+box off; axis tight;
+set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
 xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks'); title('Combined - normalized')
 
 
-%%%%%%% IV. Save figure and data %%%%%%%
+%%%%%%% III. Save figure and data %%%%%%%
 sgtitle(MouseID,'FontSize',20,'Color','red','Interpreter', 'none') 
 ppsize = [1600 800];
 set(gcf,'PaperPositionMode','auto');         
@@ -173,10 +164,35 @@ set(gcf,'PaperOrientation','landscape');
 set(gcf,'PaperUnits','points');
 set(gcf,'PaperSize',ppsize);
 set(gcf,'Position',[0 0 ppsize]);
-print([OutputFileName '_SummaryFig'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_SummaryFig']);
+print([OutputFileName '_CurveSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_CurveSummary']);
 
 
-save(OutputFileName,'meanLickALL','normLickALL','lickTime','concALL','-append'); fprintf('Appending... %s\n', OutputFileName);
+save(OutputFileName,'meanLickALL','normLickALL','concALL','trialconcALL','-append'); fprintf('Appending... %s\n', OutputFileName);
+
+%% ****************************************************************
+%  *****              LICK STRUCTURE (INDIVIDUAL)             *****
+%  ****************************************************************
+
+cd([rootdir sep MouseID]);
+load(OutputFileName)
+nSessions = length(BATdataALL);
+
+%%%%%%% I. Calculate lick structure %%%%%%%
+minboutsize = 3;
+LickStruct = cell(1,nSessions);
+for testnum = 1:nSessions
+    ILIdata = cell2mat(ILIdataALL{testnum}.Latencies);
+    LickStruct{testnum} = calcLickStructure(ILIdata, minboutsize); 
+end
+
+save(OutputFileName,'LickStruct','-append'); fprintf('Appending... %s\n', OutputFileName);
+
+%%%%%%% II. Plot lick structure %%%%%%%
+figure;
+
+ppsize = [1600 800];
+plotLickStructure(LickStruct,trialconcALL,MouseID,ppsize)
+print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_LickSummary']);
 
 %% ****************************************************************
 %  *****              SUCROSE CURVES (POPULATION)             *****
