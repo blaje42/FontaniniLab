@@ -2,8 +2,8 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQF_001';
-age = '11wk';
+MouseID = 'TDPQF_005';
+age = '12wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
@@ -41,13 +41,14 @@ for testnum = 1:length(testFolds)
     ILIdata(BATtable.LICKS == 0,:) = []; %Remove trials with no data
     ILItable = array2table(ILIdata(:,1),'VariableNames',{'PRESENTATION'});
     latencies = num2cell(ILIdata(:,2:end),2);
+   
+    
+    ILItable.Latencies = latencies;
     
     lasttrial = find(BATtable.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
     if size(ILItable,1) == lasttrial %Trial may have already been removed if there were no licks
         ILItable(lasttrial,:) = [];
     end
-    
-    ILItable.Latencies = latencies;
         
     BATdataALL{testnum} = BATtable;
     ILIdataALL{testnum} = ILItable;
@@ -76,9 +77,18 @@ disp('*************************************');
 cd([rootdir sep MouseID]);
 load(OutputFileName)
 nSessions = length(BATdataALL);
-plotpad = 20;
 
-lickCountALL = [];
+% Plotting parameters
+ExcludeFirstTest = 1; %1 = true, 0 = false (excludes first test in combined average)
+plotpad = 20;
+if nSessions < 2
+    nCol = 2;
+else nCol = nSessions;
+end
+
+
+%lickCountALL = [];
+lickCountALL = cell(1,nSessions);
 normLickALL = [];
 figure;
 for testnum = 1:nSessions 
@@ -97,8 +107,20 @@ for testnum = 1:nSessions
         
     % Remove trials with no licks 
     trialconcCUT = trialconc;
+    
     trialconcCUT(lickCount(:,1) == 0) = [];
+    lasttrial = find(BATdataALL{testnum}.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
+    if size(trialconcCUT,1) == lasttrial %Trial may have already been removed if there were no licks
+        trialconcCUT(lasttrial,:) = [];
+    end
+    
+    
     lickCount(lickCount(:,1) == 0,:) = [];
+    lasttrial = find(BATdataALL{testnum}.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
+    if size(lickCount,1) == lasttrial %Trial may have already been removed if there were no licks
+        lickCount(lasttrial,:) = [];
+    end
+    
 
     trialconcALL{testnum} = trialconcCUT;
     
@@ -110,16 +132,17 @@ for testnum = 1:nSessions
        stdevLick(numconc) = std(lickCount(lickCount(:,2) == conc(numconc),1));
     end
     
-    lickCountALL = [lickCountALL; lickCount]; % For combined curve (includes all sessions)
+    %lickCountALL = [lickCountALL; lickCount]; % For combined curve (includes all sessions)
+    lickCountALL{testnum} = lickCount;
     normLick = meanLick./meanLick(1);% For combined - normalized curve 
     normLickALL = [normLickALL; normLick]; % (includes all sessions)
     
     %Plot each session
-    subplot(2,nSessions + 1,testnum);
+    subplot(2,nCol,testnum);
     plot(conc,meanLick,'-ko','MarkerFaceColor','k')
     hold on; errorbar(conc,meanLick,stdevLick,'LineStyle', 'none'); hold off;
     box off; axis tight;
-    set(gca,'TickDir','out','XTick',conc,'XTickLabels',num2str(conc),'XLim',[conc(1)-plotpad, conc(end)+plotpad])
+    set(gca,'TickDir','out','XTick',conc,'XTickLabels',num2str(conc),'XLim',[conc(1)-plotpad, conc(end)+plotpad], 'YLim',[0 125])
     xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); title(['Session ' num2str(testnum)])
           
     
@@ -128,32 +151,45 @@ end
 
 
 %%%%%%% II. Calculate and plot sucrose curves averaged across sessions %%%%%%%
-if nSessions < 2
-    nCol = 2;
-else nCol = nSessions
+
+
+if ExcludeFirstTest == 1
+    lickCountALL{1} = [];
+    normLickALL(1,:) = [];
 end
+
+lickCountCAT = vertcat(lickCountALL{:});
 
 meanLickALL = NaN(1,length(conc));
 stdevLickALL = NaN(1,length(conc));
-concALL = unique(lickCountALL(:,2));
+concALL = unique(lickCountCAT(:,2));
 for numconc = 1:length(concALL)
-   meanLickALL(numconc) = mean(lickCountALL(lickCountALL(:,2) == concALL(numconc),1)); 
-   stdevLickALL(numconc) = std(lickCountALL(lickCountALL(:,2) == concALL(numconc),1));
+   meanLickALL(numconc) = mean(lickCountCAT(lickCountCAT(:,2) == concALL(numconc),1)); 
+   stdevLickALL(numconc) = std(lickCountCAT(lickCountCAT(:,2) == concALL(numconc),1));
 end
 subplot(2,nCol, nCol + 1);
 
 plot(concALL,meanLickALL,'-ko','MarkerFaceColor','k')
 hold on; errorbar(concALL,meanLickALL,stdevLickALL,'LineStyle', 'none'); hold off;
 box off; axis tight;
-set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
-xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); title('Combined')
+set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad], 'YLim',[0 125])
+xlabel('Sucrose concentration (mM)'); ylabel('mean # of Licks'); 
+if ExcludeFirstTest == 1
+    title('Combined, Sess 1 EXCL')
+else title('Combined')
+end
+
 
 subplot(2,nCol, nCol + 2);
 
-plot(concALL, mean(normLickALL,1),'-ko','MarkerFaceColor','k')
+plot(concALL, nanmean(normLickALL,1),'-ko','MarkerFaceColor','k')
 box off; axis tight;
 set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
-xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks'); title('Combined - normalized')
+xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks'); 
+if ExcludeFirstTest == 1
+    title('Combined - normalized, Sess 1 EXCL')
+else title('Combined - normalized')
+end
 
 
 %%%%%%% III. Save figure and data %%%%%%%
@@ -167,7 +203,7 @@ set(gcf,'Position',[0 0 ppsize]);
 print([OutputFileName '_CurveSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_CurveSummary']);
 
 
-save(OutputFileName,'meanLickALL','normLickALL','concALL','trialconcALL','-append'); fprintf('Appending... %s\n', OutputFileName);
+save(OutputFileName,'meanLickALL','normLickALL','concALL','trialconcALL','ExcludeFirstTest','-append'); fprintf('Appending... %s\n', OutputFileName);
 
 %% ****************************************************************
 %  *****              LICK STRUCTURE (INDIVIDUAL)             *****
@@ -199,13 +235,12 @@ print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\
 %  ****************************************************************
 % Calculate and plot average sucrose curve for all animals in cohort
 
-CohortMUT = {'TDPQM_002', 'TDPQM_008'};
+CohortMUT = {'TDPQM_002', 'TDPQM_008', 'TDPQF_005'};
 CohortCTRL = [];
-CohortWT = {'TDPQF_001', 'TDPQF_002'};
+CohortWT = {'TDPQF_006', 'TDPQM_011'};
 plotpad = 20;
 
 figure;
-age = '12wk'
 %%%%%%% I. Plot MUT cohort %%%%%%%
 LickALLMICE = [];
 nMice = length(CohortMUT);
@@ -236,7 +271,6 @@ title(['MUTANT (N = ' num2str(length(CohortMUT)) ')'])
 % % % title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
 
 %%%%%%% III. Plot WT cohort %%%%%%%
-age = '11wk'
 
 LickALLMICE = [];
 nMice = length(CohortWT);
