@@ -2,13 +2,13 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQF_005';
+MouseID = 'TDPWM_016';
 age = '12wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
 BATtest = 'Sucrose'; %Name of BAT test (or unique folder identifier for test days)
-OutputFileName = [MouseID '-' BATtest '-' age];
+OutputFileName = [MouseID '-BAT-' BATtest '-' age];
 
 % Pre-sets for figures
 fontname = 'Arial';
@@ -32,7 +32,7 @@ for testnum = 1:length(testFolds)
     
     cd([rootdir sep MouseID sep age sep testFolds{testnum}]);
     
-    [BATtable, ILIdata, nTrialTot] = importBATdata([MouseID '_' BATtest num2str(testnum)]);
+    [BATtable, ILIdata, nTrialTot] = importDAVISdata([MouseID '_' BATtest num2str(testnum)]);
     if size(ILIdata,1) ~= nTrialTot || size(BATtable,1) ~= nTrialTot %If not importing all trials, exit the loop and display error
         error('Import error - not all trials imported, FIX before proceeding')
         break
@@ -236,8 +236,8 @@ print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\
 % Calculate and plot average sucrose curve for all animals in cohort
 
 CohortMUT = {'TDPQM_002', 'TDPQM_008', 'TDPQF_005'};
-CohortCTRL = [];
-CohortWT = {'TDPQF_006', 'TDPQM_011'};
+CohortCTRL = {'TDPWF_002','TDPWM_016','TDPWM_001','TDPWM_002','TDPWM_005','TDPWM_011','TDPWF_005','TDPWF_006'};
+CohortWT = {'TDPQF_006', 'TDPQM_011', 'TDPWF_001'};
 plotpad = 20;
 
 figure;
@@ -261,14 +261,37 @@ set(gca,'TickDir','out','XTick',[concALL],'XTickLabels',num2str(concALL),'XLim',
 xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
 title(['MUTANT (N = ' num2str(length(CohortMUT)) ')'])
 
-% % % %%%%%%% II. Plot CTRL cohort %%%%%%%
-% % % 
-% % % for mnum = 1:length(CohortCTRL)
-% % %     cd([rootdir sep CohortCTRL(mnum)]);
-% % %     load(OutputFileName)    
-% % % end
-% % % 
-% % % title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
+%%%%%%% II. Plot CTRL cohort %%%%%%%
+
+LickALLMICE = [];
+nMice = length(CohortCTRL);
+for mnum = 1:nMice
+    cd([rootdir sep CohortCTRL{mnum}]);
+    load([CohortCTRL{mnum} '-' BATtest '-' age])
+    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+    LickALLMICE = [LickALLMICE; normlick];    
+end
+meanLickALLMICE = mean(LickALLMICE,1);
+semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
+
+subplot(3,1,2); plot(concALL, meanLickALLMICE,'-ko','MarkerFaceColor','k')
+hold on; errorbar(concALL, meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
+
+box off; axis tight; 
+set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
+title(['WILDTYPE (N = ' num2str(length(CohortCTRL)) ')'])
+
+sgtitle([BATtest ' - ' age],'FontSize',20, 'Color', 'red')
+
+ppsize = [800 1000];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
 
 %%%%%%% III. Plot WT cohort %%%%%%%
 
