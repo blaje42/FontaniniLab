@@ -1,6 +1,5 @@
-function [BATdata, LICKdata,nTrialTot] = importBATdata(FileID)
-% Import data for Brief Access Test from Davis Rig (already converted from
-% .txt to .xlsx format
+function [BATdata, LICKdata,nTrialTot] = importDAVISdata(FileID)
+% Import data from Davis Rig (already converted from .txt to .xlsx format
 %
 % INPUTS:
 %   FileID (string) = excel file name (exculding format)
