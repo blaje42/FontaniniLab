@@ -2,7 +2,7 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPWM_016';
+MouseID = 'TDPWF_001';
 age = '12wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
@@ -235,9 +235,9 @@ print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\
 %  ****************************************************************
 % Calculate and plot average sucrose curve for all animals in cohort
 
-CohortMUT = {'TDPQM_002', 'TDPQM_008', 'TDPQF_005'};
+CohortMUT = {'TDPQM_002', 'TDPQM_008', 'TDPQF_005', 'TDPQF_010', 'TDPQF_011','TDPQM_013','TDPQM_016'};
 CohortCTRL = {'TDPWF_002','TDPWM_016','TDPWM_001','TDPWM_002','TDPWM_005','TDPWM_011','TDPWF_005','TDPWF_006'};
-CohortWT = {'TDPQF_006', 'TDPQM_011', 'TDPWF_001'};
+CohortWT = {'TDPQF_006', 'TDPQM_011', 'TDPWF_001','TDPQF_012','TDPQM_015'};
 plotpad = 20;
 
 figure;
@@ -246,7 +246,7 @@ LickALLMICE = [];
 nMice = length(CohortMUT);
 for mnum = 1:nMice
     cd([rootdir sep CohortMUT{mnum}]);
-    load([CohortMUT{mnum} '-' BATtest '-' age])
+    load([CohortMUT{mnum} '-BAT-' BATtest '-' age])
     normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
     LickALLMICE = [LickALLMICE; normlick];    
 end
@@ -299,7 +299,7 @@ LickALLMICE = [];
 nMice = length(CohortWT);
 for mnum = 1:nMice
     cd([rootdir sep CohortWT{mnum}]);
-    load([CohortWT{mnum} '-' BATtest '-' age])
+    load([CohortWT{mnum} '-BAT-' BATtest '-' age])
     normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
     LickALLMICE = [LickALLMICE; normlick];    
 end
