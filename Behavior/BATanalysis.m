@@ -2,8 +2,8 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPWF_001';
-age = '12wk';
+MouseID = 'TDPQF_002';
+age = '20wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
@@ -14,6 +14,7 @@ OutputFileName = [MouseID '-BAT-' BATtest '-' age];
 fontname = 'Arial';
 set(0,'DefaultAxesFontName',fontname,'DefaultTextFontName',fontname,'DefaultTextColor','k','defaultAxesFontSize',14);
 set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'})
+ExcludeFirstTest = 0; %1 = true, 0 = false (excludes first test in combined average)
 
 %% *****************************************************************
 %  *****                       IMPORT DATA                     *****
@@ -41,11 +42,21 @@ for testnum = 1:length(testFolds)
     ILIdata(BATtable.LICKS == 0,:) = []; %Remove trials with no data
     ILItable = array2table(ILIdata(:,1),'VariableNames',{'PRESENTATION'});
     latencies = num2cell(ILIdata(:,2:end),2);
-   
-    
     ILItable.Latencies = latencies;
+         
     
     lasttrial = find(BATtable.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
+    
+    %Remove error trials (noticed for TURMERIC starting 10/22/19)
+    errMIN = 250; %Minimum latency acceptable as not being an error
+    errIDX = find(BATtable.Latency(1:lasttrial) < errMIN);
+    if ~isempty(errIDX)
+        BATtable(errIDX,:) = [];
+        ILItable(errIDX,:) = [];
+    end
+    
+    
+    
     if size(ILItable,1) == lasttrial %Trial may have already been removed if there were no licks
         ILItable(lasttrial,:) = [];
     end
@@ -79,7 +90,7 @@ load(OutputFileName)
 nSessions = length(BATdataALL);
 
 % Plotting parameters
-ExcludeFirstTest = 1; %1 = true, 0 = false (excludes first test in combined average)
+
 plotpad = 20;
 if nSessions < 2
     nCol = 2;
@@ -230,97 +241,3 @@ ppsize = [1600 800];
 plotLickStructure(LickStruct,trialconcALL,MouseID,ppsize)
 print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_LickSummary']);
 
-%% ****************************************************************
-%  *****              SUCROSE CURVES (POPULATION)             *****
-%  ****************************************************************
-% Calculate and plot average sucrose curve for all animals in cohort
-
-CohortMUT = {'TDPQM_002', 'TDPQM_008', 'TDPQF_005', 'TDPQF_010', 'TDPQF_011','TDPQM_013','TDPQM_016'};
-CohortCTRL = {'TDPWF_002','TDPWM_016','TDPWM_001','TDPWM_002','TDPWM_005','TDPWM_011','TDPWF_005','TDPWF_006'};
-CohortWT = {'TDPQF_006', 'TDPQM_011', 'TDPWF_001','TDPQF_012','TDPQM_015'};
-plotpad = 20;
-
-figure;
-%%%%%%% I. Plot MUT cohort %%%%%%%
-LickALLMICE = [];
-nMice = length(CohortMUT);
-for mnum = 1:nMice
-    cd([rootdir sep CohortMUT{mnum}]);
-    load([CohortMUT{mnum} '-BAT-' BATtest '-' age])
-    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
-    LickALLMICE = [LickALLMICE; normlick];    
-end
-meanLickALLMICE = mean(LickALLMICE,1);
-semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
-
-subplot(3,1,1); plot(concALL,meanLickALLMICE,'-ko','MarkerFaceColor','k')
-hold on; errorbar(concALL,meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
-
-box off; axis tight;
-set(gca,'TickDir','out','XTick',[concALL],'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
-xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
-title(['MUTANT (N = ' num2str(length(CohortMUT)) ')'])
-
-%%%%%%% II. Plot CTRL cohort %%%%%%%
-
-LickALLMICE = [];
-nMice = length(CohortCTRL);
-for mnum = 1:nMice
-    cd([rootdir sep CohortCTRL{mnum}]);
-    load([CohortCTRL{mnum} '-' BATtest '-' age])
-    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
-    LickALLMICE = [LickALLMICE; normlick];    
-end
-meanLickALLMICE = mean(LickALLMICE,1);
-semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
-
-subplot(3,1,2); plot(concALL, meanLickALLMICE,'-ko','MarkerFaceColor','k')
-hold on; errorbar(concALL, meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
-
-box off; axis tight; 
-set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
-xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
-title(['WILDTYPE (N = ' num2str(length(CohortCTRL)) ')'])
-
-sgtitle([BATtest ' - ' age],'FontSize',20, 'Color', 'red')
-
-ppsize = [800 1000];
-set(gcf,'PaperPositionMode','auto');         
-set(gcf,'PaperOrientation','landscape');
-set(gcf,'PaperUnits','points');
-set(gcf,'PaperSize',ppsize);
-set(gcf,'Position',[0 0 ppsize]);
-
-title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
-
-%%%%%%% III. Plot WT cohort %%%%%%%
-
-LickALLMICE = [];
-nMice = length(CohortWT);
-for mnum = 1:nMice
-    cd([rootdir sep CohortWT{mnum}]);
-    load([CohortWT{mnum} '-BAT-' BATtest '-' age])
-    normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
-    LickALLMICE = [LickALLMICE; normlick];    
-end
-meanLickALLMICE = mean(LickALLMICE,1);
-semLickALLMICE = std(LickALLMICE,1)./sqrt(nMice);
-
-subplot(3,1,3); plot(concALL, meanLickALLMICE,'-ko','MarkerFaceColor','k')
-hold on; errorbar(concALL, meanLickALLMICE,semLickALLMICE,'LineStyle', 'none'); hold off;
-
-box off; axis tight; 
-set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
-xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
-title(['WILDTYPE (N = ' num2str(length(CohortWT)) ')'])
-
-sgtitle([BATtest ' - ' age],'FontSize',20, 'Color', 'red')
-
-ppsize = [800 1000];
-set(gcf,'PaperPositionMode','auto');         
-set(gcf,'PaperOrientation','landscape');
-set(gcf,'PaperUnits','points');
-set(gcf,'PaperSize',ppsize);
-set(gcf,'Position',[0 0 ppsize]);
-
-%%% Sigmoid fits??? %%%
