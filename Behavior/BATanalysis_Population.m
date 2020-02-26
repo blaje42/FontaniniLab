@@ -5,6 +5,10 @@
 
 ages = {'12wk','20wk'};
 cohorts = {'MUT','CTRL','WT'};
+rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
+sep = '\';
+BATtest = 'Sucrose'; %Name of BAT test (or unique folder identifier for test days)
+
 plotpad = 20;
 age = [];
 for i = 1:length(ages)
@@ -21,7 +25,8 @@ for i = 1:length(ages)
     for mnum = 1:nMice
         cd([rootdir sep CohortMUT{mnum}]);
         load([CohortMUT{mnum} '-BAT-' BATtest '-' ages{i}])
-        normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        %normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        normlick = meanLickALL;
         LickALLMICE = [LickALLMICE; normlick];    
     end
     meanLickALLMICE = mean(LickALLMICE,1);
@@ -32,6 +37,7 @@ for i = 1:length(ages)
 
     box off; axis tight;
     set(gca,'TickDir','out','XTick',[concALL],'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+    set(gca,'YLim',[30 80])
     xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
     title(['MUTANT (N = ' num2str(length(CohortMUT)) ')'])
 
@@ -42,7 +48,8 @@ for i = 1:length(ages)
     for mnum = 1:nMice
         cd([rootdir sep CohortCTRL{mnum}]);
         load([CohortCTRL{mnum} '-BAT-' BATtest '-' ages{i}])
-        normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        %normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        normlick = meanLickALL;
         LickALLMICE = [LickALLMICE; normlick];    
     end
     meanLickALLMICE = mean(LickALLMICE,1);
@@ -53,6 +60,7 @@ for i = 1:length(ages)
 
     box off; axis tight; 
     set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+    set(gca,'YLim',[30 80])
     xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
     title(['CONTROL (N = ' num2str(length(CohortCTRL)) ')'])
 
@@ -74,7 +82,8 @@ for i = 1:length(ages)
     for mnum = 1:nMice
         cd([rootdir sep CohortWT{mnum}]);
         load([CohortWT{mnum} '-BAT-' BATtest '-' ages{i}])
-        normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        %normlick = meanLickALL./meanLickALL(1); % normalize average licks for each mouse
+        normlick = meanLickALL;
         LickALLMICE = [LickALLMICE; normlick];    
     end
     meanLickALLMICE = mean(LickALLMICE,1);
@@ -85,6 +94,7 @@ for i = 1:length(ages)
 
     box off; axis tight; 
     set(gca,'TickDir','out','XTick',concALL,'XTickLabels',num2str(concALL),'XLim',[concALL(1)-plotpad, concALL(end)+plotpad])
+    set(gca,'YLim',[30 80])
     xlabel('Sucrose concentration (mM)'); ylabel('normalized # of Licks');
     title(['WILDTYPE (N = ' num2str(length(CohortWT)) ')'])
 
