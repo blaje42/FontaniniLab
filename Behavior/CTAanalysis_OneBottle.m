@@ -2,8 +2,8 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQM_022';
-age = '12wk';
+MouseID = 'TDPQM_028';
+age = '13wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
@@ -92,13 +92,13 @@ save(OutputFileName,'lickCount','-append'); fprintf('Appending... %s\n', OutputF
 
 %%%%%%% I. Plot consumption over days %%%%%%%
 
-figure; subplot(2,2,[1 2]); hold on;
+figure; subplot(1,3,[1 2]); hold on;
 for u = 1:length(CTAtable)
     if strcmp(CTAtable{u}.SOLUTION,CTAtest)
-        bar(u,CTAtable{u}.LICKS,0.4,'m','EdgeColor','none')
+        bar(u,CTAtable{u}.LICKS,0.4,'FaceColor',[0.73 0.32 0.62],'EdgeColor','none')
     elseif strcmp(CTAtable{u}.SOLUTION,'Water')
-        bar(u,CTAtable{u}.LICKS,0.4,'b','EdgeColor','none')
-    else bar(u,CTAtable{u}.LICKS,0.4,'r','EdgeColor','none')
+        bar(u,CTAtable{u}.LICKS,0.4,'FaceColor',[0.05 0.45 0.73],'EdgeColor','none')
+    else bar(u,CTAtable{u}.LICKS,0.4,'FaceColor', [0.85 0.33 0.15],'EdgeColor','none')
     end
     ID{u} = CTAtable{u}.SOLUTION;
 end
@@ -108,9 +108,9 @@ ylabel('Licks');
 
 %%%%%%% II. Plot consumption of conditioned tastant over days %%%%%%%
 
-subplot(2,2,3)
-bar(lickCount.(CTAtest),0.4,'EdgeColor','none');
-hold on; bar(length(lickCount.(CTAtest))+1,lickCount.(testfolderID),0.4,'EdgeColor','none');
+subplot(1,3,3)
+bar(lickCount.(CTAtest),0.4,'FaceColor',[0.73 0.32 0.62],'EdgeColor','none');
+hold on; bar(length(lickCount.(CTAtest))+1,lickCount.(testfolderID),0.4,'FaceColor',[0.85 0.33 0.15],'EdgeColor','none');
 set(gca,'TickDir','out')
 box off;
 ylabel('Licks'); xlabel('Sucrose presentation')
@@ -118,15 +118,9 @@ ylabel('Licks'); xlabel('Sucrose presentation')
 
 %%%%%%% III. Plot consumption of conditioned tastant on test day vs. water %%%%%%%
 
-subplot(2,2,4)
-bar([lickCount.Water(end) lickCount.(testfolderID)],0.4,'EdgeColor','none');
-set(gca,'TickDir','out','XTickLabels',{'Water', CTAtest})
-box off;
-ylabel('Licks'); xlabel('Tastant')
-
 
 sgtitle(MouseID,'FontSize',20,'Color','red','Interpreter', 'none')
-ppsize = [1600 1200];
+ppsize = [1600 400];
 set(gcf,'PaperPositionMode','auto');         
 set(gcf,'PaperOrientation','landscape');
 set(gcf,'PaperUnits','points');
