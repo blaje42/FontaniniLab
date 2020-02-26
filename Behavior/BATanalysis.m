@@ -2,8 +2,18 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPQF_002';
+%%%%%%%%%%%%%%%%
+% TO DO
+%%%%%%%%%%%%%%%%
+%%% Add option to exclude any number of the tests 
+
+
+%MouseID = 'TDPWM_016';
+MouseIDS = loadsessionsBAT(cohorts{3},ages{2});
 age = '20wk';
+
+for mid = 1:length(MouseIDS)
+    MouseID = MouseIDS{mid};
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
 sep = '\';
@@ -14,68 +24,77 @@ OutputFileName = [MouseID '-BAT-' BATtest '-' age];
 fontname = 'Arial';
 set(0,'DefaultAxesFontName',fontname,'DefaultTextFontName',fontname,'DefaultTextColor','k','defaultAxesFontSize',14);
 set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor'},{'k','k','k'})
+
+
 ExcludeFirstTest = 0; %1 = true, 0 = false (excludes first test in combined average)
 
-%% *****************************************************************
-%  *****                       IMPORT DATA                     *****
-%  *****************************************************************
-
-%Identify subfolders containing data on test days. 
-d = dir([rootdir sep MouseID sep age]);
-isub = [d(:).isdir]; % returns logical vector
-nameFolds = {d(isub).name}';
-testFolds = nameFolds(contains(nameFolds, BATtest),1); 
-
-%Import lick data from each folder
-BATdataALL = cell(1,length(testFolds));
-ILIdataALL = cell(1,length(testFolds));
-for testnum = 1:length(testFolds)
-    
-    cd([rootdir sep MouseID sep age sep testFolds{testnum}]);
-    
-    [BATtable, ILIdata, nTrialTot] = importDAVISdata([MouseID '_' BATtest num2str(testnum)]);
-    if size(ILIdata,1) ~= nTrialTot || size(BATtable,1) ~= nTrialTot %If not importing all trials, exit the loop and display error
-        error('Import error - not all trials imported, FIX before proceeding')
-        break
-    end
-    
-    ILIdata(BATtable.LICKS == 0,:) = []; %Remove trials with no data
-    ILItable = array2table(ILIdata(:,1),'VariableNames',{'PRESENTATION'});
-    latencies = num2cell(ILIdata(:,2:end),2);
-    ILItable.Latencies = latencies;
-         
-    
-    lasttrial = find(BATtable.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
-    
-    %Remove error trials (noticed for TURMERIC starting 10/22/19)
-    errMIN = 250; %Minimum latency acceptable as not being an error
-    errIDX = find(BATtable.Latency(1:lasttrial) < errMIN);
-    if ~isempty(errIDX)
-        BATtable(errIDX,:) = [];
-        ILItable(errIDX,:) = [];
-    end
-    
-    
-    
-    if size(ILItable,1) == lasttrial %Trial may have already been removed if there were no licks
-        ILItable(lasttrial,:) = [];
-    end
-        
-    BATdataALL{testnum} = BATtable;
-    ILIdataALL{testnum} = ILItable;
-    
-    
-    save([MouseID '_' testFolds{testnum} '.mat'],'BATtable','ILItable'); fprintf('Saving... %s\n',[MouseID '_' testFolds{testnum}]); 
-    
-    
-end
-
-cd([rootdir sep MouseID]);
-save([OutputFileName '.mat'],'BATdataALL','ILIdataALL'); fprintf('Saving... %s\n', OutputFileName);
-
-disp('*************************************');
-disp(['Imported ' num2str(length(testFolds)) ' test(s) for ' MouseID]);
-disp('*************************************');
+% % %% *****************************************************************
+% % %  *****                       IMPORT DATA                     *****
+% % %  *****************************************************************
+% % 
+% % %Identify subfolders containing data on test days. 
+% % d = dir([rootdir sep MouseID sep age]);
+% % isub = [d(:).isdir]; % returns logical vector
+% % nameFolds = {d(isub).name}';
+% % testFolds = nameFolds(contains(nameFolds, BATtest),1); 
+% % 
+% % 
+% % BATdataALL = cell(1,length(testFolds));
+% % ILIdataALL = cell(1,length(testFolds));
+% % 
+% % for testnum = 1:length(testFolds) %Separate analysis for each test day
+% %     
+% %     cd([rootdir sep MouseID sep age sep testFolds{testnum}]);
+% %     
+% %     %%% I. Import lick data from each folder %%%
+% %     [BATtable, ILIdata, nTrialTot] = importDAVISdata([MouseID '_' BATtest num2str(testnum)]);
+% %     if size(ILIdata,1) ~= nTrialTot || size(BATtable,1) ~= nTrialTot %If not importing all trials, exit the loop and display error
+% %         error('Import error - not all trials imported, FIX before proceeding')
+% %         break
+% %     end
+% %     
+% %     %%% II. Remove trials with no data %%%
+% %     ILIdata(BATtable.LICKS == 0,:) = []; %Remove trials with no data
+% %     lasttrial = find(BATtable.Latency > 0, 1, 'last'); %Remove last trial because unlikely to be complete duration
+% %     
+% %        
+% %     %Add presentation # to lick ILI data
+% %     ILItable = array2table(ILIdata(:,1),'VariableNames',{'PRESENTATION'});
+% %     latencies = num2cell(ILIdata(:,2:end),2);
+% %     ILItable.Latencies = latencies;
+% %              
+% %     
+% %     %Remove error trials (noticed for TURMERIC starting 10/22/19)
+% %     errMIN = 250; %Minimum latency acceptable as not being an error
+% %     errIDX = find(BATtable.Latency(1:lasttrial) < errMIN);
+% %     if ~isempty(errIDX)
+% %         BATtable(errIDX,:) = [];
+% %         ILItable(errIDX,:) = [];
+% %     end
+% %     
+% %     if BATtable.Retries(lasttrial + 1) > 0 %Last trial may have no licks but many retries. If this is the case, adjust last trial
+% %         lasttrial = lasttrial + 1;
+% %     end
+% %     
+% %     if size(ILItable,1) == lasttrial %Trial may have already been removed if there were no licks
+% %         ILItable(lasttrial,:) = [];
+% %     end
+% %     
+% %     
+% %     save([MouseID '_' testFolds{testnum} '.mat'],'BATtable','ILItable'); fprintf('Saving... %s\n',[MouseID '_' testFolds{testnum}]); 
+% %     
+% %     %%% III. Combine data from each test in cell array %%%
+% %     BATdataALL{testnum} = BATtable;
+% %     ILIdataALL{testnum} = ILItable;
+% %     
+% % end
+% % 
+% % cd([rootdir sep MouseID]);
+% % save([OutputFileName '.mat'],'BATdataALL','ILIdataALL'); fprintf('Saving... %s\n', OutputFileName);
+% % 
+% % disp('*************************************');
+% % disp(['Imported ' num2str(length(testFolds)) ' test(s) for ' MouseID]);
+% % disp('*************************************');
 
 
 
@@ -159,7 +178,7 @@ for testnum = 1:nSessions
     
 end
 
-
+save(OutputFileName,'lickCountALL','-append');
 
 %%%%%%% II. Calculate and plot sucrose curves averaged across sessions %%%%%%%
 
@@ -220,24 +239,26 @@ save(OutputFileName,'meanLickALL','normLickALL','concALL','trialconcALL','Exclud
 %  *****              LICK STRUCTURE (INDIVIDUAL)             *****
 %  ****************************************************************
 
-cd([rootdir sep MouseID]);
-load(OutputFileName)
-nSessions = length(BATdataALL);
+% % cd([rootdir sep MouseID]);
+% % load(OutputFileName)
+% % nSessions = length(BATdataALL);
+% % 
+% % %%%%%%% I. Calculate lick structure %%%%%%%
+% % minboutsize = 3;
+% % LickStruct = cell(1,nSessions);
+% % for testnum = 1:nSessions
+% %     ILIdata = cell2mat(ILIdataALL{testnum}.Latencies);
+% %     LickStruct{testnum} = calcLickStructure(ILIdata, minboutsize); 
+% % end
+% % 
+% % save(OutputFileName,'LickStruct','-append'); fprintf('Appending... %s\n', OutputFileName);
+% % 
+% % %%%%%%% II. Plot lick structure %%%%%%%
+% % figure;
+% % 
+% % ppsize = [1600 800];
+% % plotLickStructure(LickStruct,trialconcALL,MouseID,ppsize)
+% % print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_LickSummary']);
 
-%%%%%%% I. Calculate lick structure %%%%%%%
-minboutsize = 3;
-LickStruct = cell(1,nSessions);
-for testnum = 1:nSessions
-    ILIdata = cell2mat(ILIdataALL{testnum}.Latencies);
-    LickStruct{testnum} = calcLickStructure(ILIdata, minboutsize); 
 end
-
-save(OutputFileName,'LickStruct','-append'); fprintf('Appending... %s\n', OutputFileName);
-
-%%%%%%% II. Plot lick structure %%%%%%%
-figure;
-
-ppsize = [1600 800];
-plotLickStructure(LickStruct,trialconcALL,MouseID,ppsize)
-print([OutputFileName '_LickSummary'],'-dpdf','-r400'); fprintf('Printing... %s\n', [OutputFileName '_LickSummary']);
 
