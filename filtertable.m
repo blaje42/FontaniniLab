@@ -1,4 +1,4 @@
-function TABLEfiltered = filtertable(TABLE,varargin)
+function [TABLEfiltered, varargout] = filtertable(TABLE,varargin)
 %Filter table based on indicated values for various variables in TABLE
 %
 % Inputs:
@@ -12,6 +12,7 @@ function TABLEfiltered = filtertable(TABLE,varargin)
 %
 % Outputs:
 %   TABLEfiltered (table) = TABLE containing only rows matching filters
+%   uniqueIDX (array) = (optional output) list of indices from original table used to make filtered table
 
 %To Add:
 % 1. Date range?
@@ -51,7 +52,7 @@ end
 uniqueIDX = intersectcell(IDXall);
 
 TABLEfiltered = TABLE(uniqueIDX,:);
-
+varargout{1} = uniqueIDX;
 
 function runIntersect = intersectcell(A)
 % Find intersect of multiple arrays
