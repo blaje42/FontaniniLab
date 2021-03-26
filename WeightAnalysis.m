@@ -7,8 +7,9 @@
 
 %%%% 1. Import weight data %%%%
 rootdir = 'C:\Users\Jennifer\Dropbox\FontaniniLab\Experiment Logs';
+cd(rootdir);
 WeightTable = readtable('WeightLog.xlsx');
-GENOTYPE = {'TDP43 Mut','TDP43 Ctrl','TDP43 WT'};
+GENOTYPE = {'TDP43 Ctrl','TDP43 WT','TDP43 Mut'};
 nWeights = (size(WeightTable,2) - 4)/3; %Not all mice will have this number of weights
 
 %%%% 2. Extract weight/age data for different GENOTYPE and SEX %%%%
@@ -86,7 +87,7 @@ end
 
 %%%% 4. Plot weight over time for different GENOTYPE and SEX %%%%
 
-colors = {[0.85 0.06 0.06], [0.98 0.68 0.13], 'k'};
+colors = {[0.98 0.68 0.13],'k', [0.85 0.06 0.06] };
 shapes = {'o','d','s'};
 
 figure;
@@ -160,3 +161,5 @@ set(gcf,'Position',[0 0 ppsize]);
 sgtitle('WEIGHTS','FontSize',20, 'Color', 'red')
 
 
+cd('C:\Users\Jennifer\Dropbox\FontaniniLab\Lab Meeting\Figures\LabMeeting2')
+print(['WeightSummary_' date],'-dpdf','-r400');
