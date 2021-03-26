@@ -2,7 +2,7 @@
 %apparatus 
 %(MUST RUN THIS SECTION BEFORE ANY OF THE OTHER SECTIONS EVERY TIME)
 
-MouseID = 'TDPWM_015';
+MouseID = 'TDPQM_017';
 age = '12wk';
 
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR';
