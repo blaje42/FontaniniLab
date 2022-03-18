@@ -26,24 +26,27 @@ for i = 1:nCat
     TableVar = TABLE.(varargin{2*i-1});
 
                 
-    if iscellstr(varargin{2*i})
+    if iscellstr(varargin{2*i}) %If variable is a cell of strings
         for j = 1:length(varargin{2*i})
             VarIDX = find(strcmp(TableVar,varargin{2*i}{j}));
             IDX = [IDX; VarIDX];
         end
         IDXall{i} = IDX;
-    elseif iscell(varargin{2*i})
+    elseif iscell(varargin{2*i}) %If variable is a cell
         for j = 1:length(varargin{2*i})
-            VarIDX = find(TableVar > varargin{2*i}{j}(1) & TableVar < varargin{2*i}{j}(2));
+            VarIDX = find(TableVar >= varargin{2*i}{j}(1) & TableVar <= varargin{2*i}{j}(2));
             IDX = [IDX; VarIDX];
         end
         IDXall{i} = IDX;
     else 
-        if ischar(varargin{2*i}) | isstring(varargin{2*i})
+        if ischar(varargin{2*i}) | isstring(varargin{2*i}) %If variable is string or character array
             VarIDX = find(strcmp(TableVar,varargin{2*i}));
             IDXall{i} = VarIDX;
-        else
-            VarIDX = find(TableVar > varargin{2*i}(1) & TableVar < varargin{2*i}(2));
+        else %Else just numbers
+            if length(varargin{2*i}) == 1
+                error('Numbers must have min and max!');
+            end
+            VarIDX = find(TableVar >= varargin{2*i}(1) & TableVar <= varargin{2*i}(2));
             IDXall{i} = VarIDX;
         end
     end
