@@ -1,7 +1,7 @@
 rootdir = 'C:\Users\Jennifer\Documents\DATA\BEHAVIOR\2AFC-MIXTURE';
 sep = '\';
-MouseID = 'JMB010';
-SessionID = 'Session1';
+MouseID = 'JMB017';
+SessionID = 'Session3';
 TaskID = 'Taste2AC_8V_Mixtures';
 Tastants = [100 75 65 55 45 35 25 0]; % Percent sucrose concentration valves 1 --> 8
 
@@ -10,20 +10,30 @@ cd([rootdir sep MouseID sep TaskID sep 'Session Data'])
 filename = uigetfile();
 load([rootdir sep MouseID sep TaskID sep 'Session Data' sep filename]);
 
-data = extractTrialData2AFC(SessionData);
+data = extractTrialData2AFC(SessionData,SessionID);
 
 cd([rootdir sep MouseID])
 nTrials = length(data);
-%% Remove licks outside of wait periods
 
-a = []; b = []; c = [];
- 
+%% Remove licks outside of sampling window
+
+aCount = 0; bCount = 0; cCount = 0;
+
+%Central licks
+for i = 1:nTrials
+     if ~isempty(data(i).CentralLicks(:))
+         c = find(data(i).CentralLicks > data(i).sampleCentralev(2) | data(i).CentralLicks < data(i).sampleCentralev(1));       
+         data(i).CentralLicks(c) = [];
+         cCount = cCount + length(c);
+     end 
+end
+
 %Left licks
 for i = 1:nTrials
      if ~isempty(data(i).LeftLicks(:))
          a = find(data(i).LeftLicks(1:end) > data(i).sampleLateralev(2) | data(i).LeftLicks(1:end) < data(i).sampleLateralev(1));
-         data(i).LeftLicks(a) = [];
-     else   
+         data(i).LeftLicks(a) = []; 
+         aCount = aCount + length(a);
      end 
 end
 
@@ -34,19 +44,12 @@ for i = 1:nTrials
      if ~isempty(data(i).RightLicks(:))
          b = find(data(i).RightLicks(1:end) > data(i).sampleLateralev(2) | data(i).RightLicks(1:end) < data(i).sampleLateralev(1));  
          data(i).RightLicks(b) = [];
-     else
+         bCount = bCount + length(b);
      end
 end
 
-for i = 1:nTrials
-     if ~isempty(data(i).CentralLicks(:))
-         c = find(data(i).CentralLicks > data(i).sampleCentralev(2) | data(i).CentralLicks < data(i).sampleCentralev(1));       
-         data(i).CentralLicks(c) = [];
-     else   
-     end 
-end
+fprintf('Removed %d lateral licks and %d central licks from BPOD data\n',[aCount + bCount,cCount]);
 
-fprintf('Removed %d lateral licks and %d central licks\n',[length(a)+length(b),length(c)]);
 %% Verify reward matches licking data
 for i = 1:nTrials
    firstLeft = min(data(i).LeftLicks); 
@@ -64,7 +67,7 @@ for i = 1:nTrials
    if data(i).TrialSequence == data(i).firstLateral
        data(i).Correct = 1;
    else 
-       data(i).Correct = 0;      
+       data(i).Correct = 0;
    end
    
 end
@@ -78,27 +81,42 @@ else
     fprintf('Reward data MISMATCH - needs correction\n')
 end
     
-%% list trials with no lateral licks and remove
 
+%% %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Remove trials with no central/lateral licks
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+LickData = data;
 count = 1;
-lateralmiss = [];
+trialmiss = [];
+
 for i = 1:nTrials
     
     A = isempty(data(i).LeftLicks(:));
     B = isempty(data(i).RightLicks(:));
+    C = isempty(data(i).CentralLicks(:));
     
     if A && B
-        lateralmiss(count) = i;
+        trialmiss(count) = i;
         count = count + 1;
+    elseif C
+        trialmiss(count) = i;
+        count = count + 1;
+        
     end
+    
 end
 
-% remove these trials from trial struct
-C = lateralmiss; % can add other problem trials in the future
-% % % firstLateral = lickData.firstLateral(:,setdiff(1:dataRaw.nTrials,C));
-data(C) = [];
+% Remove first 12 trials (first 12 trials are blocked pure tastes)
+trialmiss = unique([1:12 trialmiss]);
+fprintf('Removed first 12 trials\n');
 
-dataTableCut = struct2table(data);
+% remove these trials from trial struct
+LickData(trialmiss) = [];
+fprintf('Number of trials removed = %d\n',length(trialmiss));
+
+
+
+dataTableCut = struct2table(LickData);
 
 %% Calculate probability mouse will choose sucrose as function of sucrose concentration
 valveSeq = [];
@@ -108,21 +126,31 @@ valveSeq(:,2) = dataTableCut.reward;
 ratioSucrose = NaN(length(Tastants),2);
 for t = 1:length(Tastants)
     trialIDX = find(valveSeq(:,1) == t);
-    nCorr = sum(valveSeq(trialIDX,2));
+    nCorrect = sum(valveSeq(trialIDX,2));
     ratioSucrose(t,1) = Tastants(t);
-    
-    if t < 5
+    if Tastants(1) == 100
+        if t < 5
+
+            ratioSucrose(t,2) = nCorrect/length(trialIDX);
+
+        else
+            ratioSucrose(t,2) = 1 - nCorrect/length(trialIDX);
+        end
         
-        ratioSucrose(t,2) = nCorr/length(trialIDX);
-    
-    else
-        ratioSucrose(t,2) = 1 - nCorr/length(trialIDX);
+    elseif Tastants(1) == 0
+        if t < 5
+            ratioSucrose(t,2) = 1 - nCorrect/length(trialIDX);
+        else
+            ratioSucrose(t,2) = nCorrect/length(trialIDX);
+        end
+        
     end
            
     
 end
 
-ratioSucrose = flipud(ratioSucrose);
+
+ratioSucrose = sortrows(ratioSucrose,1,'ascend'); %Sort according to sucrose composition ascending
 
 
 b = glmfit(ratioSucrose(:,1),ratioSucrose(:,2),'binomial');
@@ -155,14 +183,15 @@ print([MouseID '-' SessionID '-Psychometric'],'-r400','-djpeg');
 % % plot(xx,yy)
 % % plot([0:100]-x50, yfit)
 
+
 %%
 summaryData.MouseID = MouseID;
 summaryData.ratioCorr = ratioSucrose;
 summaryData.x50 = x50;
 summaryData.slope = slope;
-summaryData.data = dataTableCut;
 summaryData.task = TaskID;
+summaryData.Tastants = Tastants;
 
-save([MouseID '-' SessionID '-' TaskID '-Data'],'summaryData')
+save([MouseID '-' SessionID '-' TaskID '-Data'],'summaryData','LickData')
 
 

@@ -61,22 +61,32 @@ for gg = 1:length(GENOTYPE)
       
    %Average weight in age bins
    binIDsF{gg} = unique(WeightDataF{gg}(:,3));
+   binIDsF{gg}(isnan(binIDsF{gg})) = [];
    for i = 1:length(binIDsF{gg})
-       
+       allWeightsF{gg,i} = WeightDataF{gg}(WeightDataF{gg}(:,3) == binIDsF{gg}(i),1);
        aveWeightF{gg}(i,1) = mean(WeightDataF{gg}(WeightDataF{gg}(:,3) == binIDsF{gg}(i),1)); %Average weights for each age bin
        aveWeightF{gg}(i,2) = binIDsF{gg}(i);     
        aveWeightF{gg}(i,3) = std(WeightDataF{gg}(WeightDataF{gg}(:,3) == binIDsF{gg}(i),1))./sqrt(numel(find(WeightDataF{gg}(:,3) == binIDsF{gg}(i)))); %S.E.M.
        
    end
    
+   
    binIDsM{gg} = unique(WeightDataM{gg}(:,3));
+   binIDsM{gg}(isnan(binIDsM{gg})) = [];
    for i = 1:length(binIDsM{gg})
-       
+       allWeightsM{gg,i} = WeightDataM{gg}(WeightDataM{gg}(:,3) == binIDsM{gg}(i),1);
        aveWeightM{gg}(i,1) = mean(WeightDataM{gg}(WeightDataM{gg}(:,3) == binIDsM{gg}(i),1));
        aveWeightM{gg}(i,2) = binIDsM{gg}(i);
        aveWeightM{gg}(i,3) = std(WeightDataM{gg}(WeightDataM{gg}(:,3) == binIDsM{gg}(i),1))./sqrt(numel(find(WeightDataM{gg}(:,3) == binIDsM{gg}(i))));
        
    end
+end
+
+%%
+for i = 1:28
+    [statsresF(1,i),statsresF(2,i)] = ranksum(allWeightsF{2,i},allWeightsF{3,i});
+    [statsresM(1,i),statsresM(2,i)] = ranksum(allWeightsM{2,i},allWeightsM{3,i});
+    statsresM(3,i) = i+3; statsresF(3,i) = i+3;
 end
 
 
@@ -86,28 +96,18 @@ end
 
 
 %%%% 4. Plot weight over time for different GENOTYPE and SEX %%%%
-
-colors = {[0.98 0.68 0.13],'k', [0.85 0.06 0.06] };
+set(groot,'defaultAxesFontSize',18)
+colors = {'#A7DC0F','#141851','#DC267F'};
 shapes = {'o','d','s'};
 
 figure;
-subplot(3,2,[1 2])
+
+
+subplot(2,2,1)
 hold on;
 for gg = 1:length(GENOTYPE)
 
-    scatter(WeightData{gg}(:,2),WeightData{gg}(:,1),25,colors{gg},shapes{gg},'filled'); 
-    
-end
-hold off;
-set(gca,'TickDir','out')
-legend(GENOTYPE,'location','northwest')
-xlabel('age (days)'); ylabel('weight (g)')
-
-subplot(3,2,3)
-hold on;
-for gg = 1:length(GENOTYPE)
-
-    scatter(WeightDataF{gg}(:,2),WeightDataF{gg}(:,1),25,colors{gg},shapes{gg},'filled');    
+    scatter(WeightDataF{gg}(:,2),WeightDataF{gg}(:,1),25,'MarkerFaceColor',colors{gg},'Marker',shapes{gg},'MarkerEdgeColor','none');    
     
 end
 hold off;
@@ -115,11 +115,11 @@ set(gca,'TickDir','out')
 xlabel('age (days)'); ylabel('weight (g)')
 title('FEMALES')
 
-subplot(3,2,4)
+subplot(2,2,2)
 hold on;
 for gg = 1:length(GENOTYPE)
 
-    scatter(WeightDataM{gg}(:,2),WeightDataM{gg}(:,1),25,colors{gg},shapes{gg},'filled');    
+    scatter(WeightDataM{gg}(:,2),WeightDataM{gg}(:,1),25,'MarkerFaceColor',colors{gg},'Marker',shapes{gg},'MarkerEdgeColor','none');    
     
 end
 hold off;
@@ -127,7 +127,7 @@ set(gca,'TickDir','out')
 xlabel('age (days)'); ylabel('weight (g)')
 title('MALES')
 
-subplot(3,2,5)
+subplot(2,2,3)
 hold on;
 for gg = 1:length(GENOTYPE)
 
@@ -139,7 +139,7 @@ set(gca,'TickDir','out')
 xlabel('age (~weeks)'); ylabel('weight (g)')
 
 
-subplot(3,2,6)
+subplot(2,2,4)
 hold on;
 for gg = 1:length(GENOTYPE)
 
@@ -161,5 +161,129 @@ set(gcf,'Position',[0 0 ppsize]);
 sgtitle('WEIGHTS','FontSize',20, 'Color', 'red')
 
 
-cd('C:\Users\Jennifer\Dropbox\FontaniniLab\Lab Meeting\Figures\LabMeeting2')
-print(['WeightSummary_' date],'-dpdf','-r400');
+cd('C:\Users\Jennifer\Dropbox\FontaniniLab\Lab Meeting\Figures\LabMeeting4')
+print(['WeightSummary_' date],'-djpeg','-r400');
+
+%%
+
+colors = {'#A7DC0F',[0	0	0.206896551724138] ,[1	0	0.689655172413793]};
+shapes = {'o','d','s'};
+
+cd('C:\Users\Jennifer\Dropbox\FontaniniLab\Conferences\')
+
+figure;
+
+
+subplot(2,1,1)
+hold on;
+for gg = 2:length(GENOTYPE)
+
+    scatter(WeightDataF{gg}(:,2),WeightDataF{gg}(:,1),25,'MarkerFaceColor',colors{gg},'Marker',shapes{gg},'MarkerEdgeColor','none');    
+    
+end
+hold off;
+set(gca,'TickDir','out','xlim',[21 215])
+xlabel('age (days)'); ylabel('weight (g)')
+title('FEMALES')
+
+subplot(2,1,2)
+hold on;
+for gg = 2:length(GENOTYPE)
+
+    scatter(WeightDataM{gg}(:,2),WeightDataM{gg}(:,1),25,'MarkerFaceColor',colors{gg},'Marker',shapes{gg},'MarkerEdgeColor','none');    
+    
+end
+hold off;
+set(gca,'TickDir','out','xlim',[21 215])
+xlabel('age (days)'); ylabel('weight (g)')
+title('MALES')
+
+print('Weights_scatter','-dpdf','-r400');
+
+figure;
+hold on;
+for gg = 2%1:length(GENOTYPE)
+
+    errorbar(aveWeightF{gg}(:,2),aveWeightF{gg}(:,1),aveWeightF{gg}(:,3),'Color',colors{gg},'LineStyle','none'); 
+    bar(aveWeightF{gg}(:,2),aveWeightF{gg}(:,1),0.25,'FaceColor',colors{gg},'EdgeColor','none')
+    
+end
+hold off;
+set(gca,'TickDir','out','ylim',[0 45],'xlim',[3.5 30.5])
+xlabel('age (~weeks)'); ylabel('weight (g)')
+
+ppsize = [1500 400];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+
+print('Weights_1','-dpdf','-r400');
+
+
+figure;
+hold on;
+for gg = 2%1:length(GENOTYPE)
+
+    errorbar(aveWeightM{gg}(:,2),aveWeightM{gg}(:,1),aveWeightM{gg}(:,3),'Color',colors{gg},'LineStyle','none'); 
+    bar(aveWeightM{gg}(:,2),aveWeightM{gg}(:,1),0.25,'FaceColor',colors{gg},'EdgeColor','none')
+    
+end
+hold off;
+set(gca,'TickDir','out','ylim',[0 50],'xlim',[3.5 30.5])
+xlabel('age (~weeks)'); ylabel('weight (g)')
+
+
+ppsize = [1500 400];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+print('Weights_2','-dpdf','-r400');
+
+figure;
+hold on;
+for gg = 3%1:length(GENOTYPE)
+
+    errorbar(aveWeightF{gg}(:,2),aveWeightF{gg}(:,1),aveWeightF{gg}(:,3),'Color',colors{gg},'LineStyle','none'); 
+    bar(aveWeightF{gg}(:,2),aveWeightF{gg}(:,1),0.25,'FaceColor',colors{gg},'EdgeColor','none')
+    
+end
+hold off;
+set(gca,'TickDir','out','ylim',[0 45],'xlim',[3.5 30.5])
+xlabel('age (~weeks)'); ylabel('weight (g)')
+
+ppsize = [1500 400];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+print('Weights_3','-dpdf','-r400');
+
+figure;
+hold on;
+for gg = 3%1:length(GENOTYPE)
+
+    errorbar(aveWeightM{gg}(:,2),aveWeightM{gg}(:,1),aveWeightM{gg}(:,3),'Color',colors{gg},'LineStyle','none'); 
+    bar(aveWeightM{gg}(:,2),aveWeightM{gg}(:,1),0.25,'FaceColor',colors{gg},'EdgeColor','none')
+    
+end
+hold off;
+set(gca,'TickDir','out','ylim',[0 50],'xlim',[3.5 30.5])
+xlabel('age (~weeks)'); ylabel('weight (g)')
+
+
+ppsize = [1500 400];
+set(gcf,'PaperPositionMode','auto');         
+set(gcf,'PaperOrientation','landscape');
+set(gcf,'PaperUnits','points');
+set(gcf,'PaperSize',ppsize);
+set(gcf,'Position',[0 0 ppsize]);
+
+print('Weights_4','-dpdf','-r400');
